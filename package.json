@@ -1,0 +1,27 @@
+{
+  "name": "ilogger",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.19.6",
+    "@hono/zod-openapi": "^1.1.5",
+    "@prisma/client": "6.19",
+    "@scalar/hono-api-reference": "^0.9.26",
+    "dotenv": "^17.2.3",
+    "hono": "^4.10.7",
+    "prisma": "6.19",
+    "zod": "^4.1.13"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}

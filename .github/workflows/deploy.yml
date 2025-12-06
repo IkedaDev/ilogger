@@ -1,0 +1,71 @@
+name: Deploy Logger API
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # 1. Login Docker Hub
+      - name: Docker Login
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      # 2. Configurar QEMU (Para compilar ARM64)
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 3. Construir y Subir Imagen
+      - name: Build and Push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ikedaharket/ilogger:latest
+            ikedaharket/ilogger:${{ github.sha }}
+          platforms: linux/amd64,linux/arm64
+
+      # 4. Desplegar en Raspberry Pi
+      - name: Deploy to Raspberry Pi
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            # Descargar la imagen más reciente
+            docker pull ikedaharket/ilogger:latest
+
+            # Detener y borrar el contenedor viejo si existe
+            if [ "$(docker ps -aq -f name=ikedadev_logger)" ]; then
+                docker stop ikedadev_logger
+                docker rm ikedadev_logger
+            fi
+
+            # --- CORRER EL CONTENEDOR ---
+            docker run -d \
+              --name ikedadev_logger \
+              --restart always \
+              --network infra_network \
+              -p ${{ secrets.PORT }}:3000 \
+              -e NODE_ENV=production \
+              -e PORT=3000 \
+              -e DATABASE_URL="${{ secrets.DATABASE_URL }}" \
+              -e LOGGER_API_KEY="${{ secrets.LOGGER_API_KEY }}" \
+              -e API_PUBLIC_PATH="/logger" \
+              ikedaharket/ilogger:latest
+
+            # Limpieza de imágenes viejas
+            docker image prune -f

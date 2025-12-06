@@ -1,0 +1,36 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url = env("DATABASE_URL")
+}
+
+enum LogLevel {
+  INFO
+  WARN
+  ERROR
+  FATAL
+  DEBUG
+}
+
+enum Environment {
+  DEVELOPMENT
+  STAGING
+  PRODUCTION
+}
+
+model Log {
+  id          String      @id @default(auto()) @map("_id") @db.ObjectId
+  projectId   String      // Ej: "anami-backend"
+  environment Environment @default(DEVELOPMENT)
+  level       LogLevel
+  message     String
+  metadata    Json?       // Datos extra
+  ip          String?
+  createdAt   DateTime    @default(now())
+
+  @@map("logs")
+  @@index([projectId, createdAt]) // Índice vital para filtrar
+}
